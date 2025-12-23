@@ -1,0 +1,22 @@
+version: "2"
+
+run:
+  timeout: 3m
+  tests: true
+
+linters:
+
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - unused
+    - gocyclo
+  disable:
+    - funlen
+    - gocognit
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
