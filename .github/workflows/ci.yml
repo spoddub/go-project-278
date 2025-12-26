@@ -8,6 +8,24 @@ jobs:
   test-lint-build:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: appdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d appdb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/appdb?sslmode=disable
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -31,7 +49,7 @@ jobs:
         run: go mod download
 
       - name: Test (race)
-        run: go test -race ./...
+        run: go test -race -count=1 ./...
 
       - name: Lint
         uses: golangci/golangci-lint-action@v9
