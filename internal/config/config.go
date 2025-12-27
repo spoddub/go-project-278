@@ -1,36 +1,36 @@
 package config
 
 import (
-	"github.com/joho/godotenv"
 	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Port        string
-	DatabaseUrl string
-	BaseUrl     string
+	AppPort     string
+	DatabaseURL string
+	BaseURL     string
+	SentryDSN   string
 }
 
 func Load() Config {
 	_ = godotenv.Load()
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+
+	cfg := Config{
+		AppPort:     "8080",
+		DatabaseURL: os.Getenv("DATABASE_URL"),
+		BaseURL:     os.Getenv("BASE_URL"),
+		SentryDSN:   os.Getenv("SENTRY_DSN"),
 	}
 
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		log.Println("Database URL is empty")
-	}
-	baseURL := os.Getenv("BASE_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost" + port
+	if cfg.DatabaseURL == "" {
+		log.Fatal("DATABASE_URL is required")
 	}
 
-	return Config{
-		Port:        port,
-		DatabaseUrl: dbURL,
-		BaseUrl:     baseURL,
+	if cfg.BaseURL == "" {
+		cfg.BaseURL = "http://localhost:8080"
 	}
+
+	return cfg
 }
