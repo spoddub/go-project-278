@@ -1,0 +1,30 @@
+{
+  "name": "go-project-278",
+  "version": "1.0.0",
+  "description": "[![Actions Status](https://github.com/spoddub/go-project-278/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/spoddub/go-project-278/actions) [![CI](https://github.com/spoddub/go-project-278/actions/workflows/ci.yml/badge.svg)](https://github.com/spoddub/go-project-278/actions)",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently -k \"air\" \"npx start-hexlet-url-shortener-frontend\"",
+    "backend": "air",
+    "frontend": "npx start-hexlet-url-shortener-frontend",
+    "test": "go test ./..."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spoddub/go-project-278.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/spoddub/go-project-278/issues"
+  },
+  "homepage": "https://github.com/spoddub/go-project-278#readme",
+  "dependencies": {
+    "@hexlet/project-url-shortener-frontend": "^1.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
