@@ -132,7 +132,7 @@ const listLinksRange = `-- name: ListLinksRange :many
 SELECT id, original_url, short_name
 FROM links
 ORDER BY id
-LIMIT $1 OFFSET $2
+    LIMIT $1 OFFSET $2
 `
 
 type ListLinksRangeParams struct {
