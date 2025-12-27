@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgconn"
 
@@ -48,17 +48,33 @@ func NewRouter(q *db.Queries, baseURL string) *gin.Engine {
 	}
 
 	r := gin.New()
+
+	allowedOrigins := []string{"http://localhost:5173"}
+	if u, err := url.Parse(h.BaseURL); err == nil && u.Scheme != "" && u.Host != "" {
+		allowedOrigins = append(allowedOrigins, u.Scheme+"://"+u.Host)
+	}
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: allowedOrigins,
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{"Content-Type", "Authorization"},
+		ExposeHeaders: []string{
+			"Content-Range",
+		},
+		MaxAge: 12 * time.Hour,
+	}))
+
 	r.Use(gin.Logger())
 
 	r.Use(sentrygin.New(sentrygin.Options{
-		Repanic:         true,
-		WaitForDelivery: false,
-		Timeout:         2 * time.Second,
+		Repanic: true,
 	}))
 
 	r.Use(gin.Recovery())
 
-	r.GET("/ping", func(c *gin.Context) { c.String(http.StatusOK, "pong") })
+	r.GET("/ping", func(c *gin.Context) {
+		c.String(http.StatusOK, "pong")
+	})
 
 	r.GET("/r/:short_name", h.redirectByShortName)
 
@@ -70,16 +86,6 @@ func NewRouter(q *db.Queries, baseURL string) *gin.Engine {
 		api.PUT("/links/:id", h.updateLink)
 		api.DELETE("/links/:id", h.deleteLink)
 	}
-
-	r.GET("/debug/sentry", func(c *gin.Context) {
-		err := errors.New("test error from /debug/sentry")
-		if hub := sentrygin.GetHubFromContext(c); hub != nil {
-			hub.CaptureException(err)
-		} else {
-			sentry.CaptureException(err)
-		}
-		c.String(http.StatusInternalServerError, "sent to sentry")
-	})
 
 	return r
 }
@@ -132,13 +138,19 @@ func (h *Handler) listLinks(c *gin.Context) {
 		return
 	}
 
+	inclusive := c.Query("sort") != "" || c.Query("filter") != ""
+
 	limit := to - from
+	if inclusive {
+		limit = to - from + 1
+	}
+
 	if limit < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid range"})
 		return
 	}
 
-	if limit == 0 || int64(from) >= total {
+	if total == 0 || limit == 0 || int64(from) >= total {
 		c.Header("Content-Range", fmt.Sprintf("links */%d", total))
 		c.JSON(http.StatusOK, []linkOut{})
 		return
@@ -355,7 +367,7 @@ func (h *Handler) redirectByShortName(c *gin.Context) {
 	c.Redirect(http.StatusFound, row.OriginalUrl)
 }
 
-func parseRange(raw string) (from, to int, ok bool) {
+func parseRange(raw string) (start, end int, ok bool) {
 	raw = strings.TrimSpace(raw)
 
 	var arr []int
@@ -366,6 +378,7 @@ func parseRange(raw string) (from, to int, ok bool) {
 	if arr[0] < 0 || arr[1] < 0 || arr[1] < arr[0] {
 		return 0, 0, false
 	}
+
 	return arr[0], arr[1], true
 }
 
@@ -374,13 +387,16 @@ func validateOriginalURL(s string) error {
 	if s == "" {
 		return errors.New("original_url is required")
 	}
+
 	u, err := url.Parse(s)
 	if err != nil || u.Scheme == "" || u.Host == "" {
 		return errors.New("original_url is invalid")
 	}
+
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return errors.New("original_url must start with http or https")
 	}
+
 	return nil
 }
 
